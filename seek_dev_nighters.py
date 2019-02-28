@@ -13,28 +13,25 @@ def load_attempts():
     pages = 1
     page = 1
     while page <= pages:
-        users_list = requests.get(DEVMAN_API_URL, {"page": page}).json()
-        pages = users_list["number_of_pages"]
+        attempts = requests.get(DEVMAN_API_URL, {"page": page}).json()
+        pages = attempts["number_of_pages"]
         page += 1
-        for user in users_list["records"]:
-            yield user
+        yield from attempts["records"]
 
 
 def get_midnighters():
-    midnighters = Counter()
-    for user in load_attempts():
-        tz = pytz.timezone(user["timezone"])
-        time = datetime.fromtimestamp(user["timestamp"], tz)
+    for attempt in load_attempts():
+        tz = pytz.timezone(attempt["timezone"])
+        time = datetime.fromtimestamp(attempt["timestamp"], tz)
         hour = time.hour
         if NIGHT_START <= hour < NIGHT_END:
-            midnighters.update([user["username"]])
-    return midnighters
+            yield attempt["username"]
 
 
 def main():
-    midnighters = get_midnighters()
+    midnighters_counter = Counter(get_midnighters())
     print("Top midnighters:")
-    for midnighter, attempts in midnighters.most_common():
+    for midnighter, attempts in midnighters_counter.most_common():
         print("- {} made {} attempts".format(midnighter, attempts))
 
 
